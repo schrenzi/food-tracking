@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h4 class="mb-4"><i class="bi bi-gear me-2"></i>Tägliche Zielwerte</h4>
+
+<div class="card">
+    <div class="card-body">
+        <form action="{{ url_for('settings') }}" method="post">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nährstoff</th>
+                            <th style="width:200px">Zielwert</th>
+                            <th>Einheit</th>
+                            <th class="text-center">Obergrenze?</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in targets %}
+                        <tr>
+                            <td class="fw-semibold align-middle">{{ t.label }}</td>
+                            <td>
+                                <input type="number" name="target_{{ t.nutrient }}"
+                                       class="form-control" step="0.1" min="0"
+                                       value="{{ t.target_value }}">
+                            </td>
+                            <td class="align-middle text-muted">{{ t.unit }}</td>
+                            <td class="text-center align-middle">
+                                <div class="form-check d-flex justify-content-center">
+                                    <input type="checkbox" name="limit_{{ t.nutrient }}"
+                                           class="form-check-input"
+                                           {% if t.is_upper_limit %}checked{% endif %}>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <p class="text-muted small">
+                <i class="bi bi-info-circle me-1"></i>
+                <strong>Obergrenze</strong> = Wert soll nicht überschritten werden (z.B. ges. Fettsäuren, Zucker).
+                Ohne Haken = Wert soll erreicht werden (z.B. Eiweiß, Ballaststoffe).
+            </p>
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-check-lg me-1"></i>Speichern
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

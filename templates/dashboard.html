@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <a href="{{ url_for('dashboard', date=prev_day) }}" class="btn btn-outline-secondary">
+        <i class="bi bi-chevron-left"></i>
+    </a>
+    <div class="text-center">
+        <h4 class="mb-0">
+            {{ day.strftime('%A, %d. %B %Y') }}
+        </h4>
+        {% if day == today %}
+        <small class="text-muted">Heute</small>
+        {% endif %}
+    </div>
+    <a href="{{ url_for('dashboard', date=next_day) }}" class="btn btn-outline-secondary">
+        <i class="bi bi-chevron-right"></i>
+    </a>
+</div>
+
+<!-- Nutrient Summary -->
+<div class="row g-3 mb-4">
+    {% for s in summary %}
+    <div class="col-md-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="card-title mb-0">{{ s.label }}</h6>
+                    <span class="badge {% if s.is_limit %}
+                        {% if s.pct > 100 %}bg-danger{% elif s.pct > 80 %}bg-warning text-dark{% else %}bg-success{% endif %}
+                    {% else %}
+                        {% if s.pct >= 100 %}bg-success{% elif s.pct > 60 %}bg-warning text-dark{% else %}bg-secondary{% endif %}
+                    {% endif %}">
+                        {{ s.pct }}%
+                    </span>
+                </div>
+                <div class="progress mb-2" style="height: 8px;">
+                    <div class="progress-bar {% if s.is_limit %}
+                        {% if s.pct > 100 %}bg-danger{% elif s.pct > 80 %}bg-warning{% else %}bg-success{% endif %}
+                    {% else %}
+                        {% if s.pct >= 100 %}bg-success{% elif s.pct > 60 %}bg-info{% else %}bg-secondary{% endif %}
+                    {% endif %}"
+                         style="width: {{ [s.pct, 100] | min }}%"></div>
+                </div>
+                <small class="text-muted">
+                    {{ s.current }} / {{ s.target }} {{ s.unit }}
+                    <span class="{% if s.is_limit and s.diff > 0 %}text-danger{% elif not s.is_limit and s.diff < 0 %}text-warning{% else %}text-success{% endif %}">
+                        ({% if s.diff > 0 %}+{% endif %}{{ s.diff }})
+                    </span>
+                </small>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Add Entry -->
+<div class="card mb-4">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Eintrag hinzufügen</h5>
+    </div>
+    <div class="card-body">
+        <form action="{{ url_for('diary_add') }}" method="post">
+            <input type="hidden" name="date" value="{{ day.isoformat() }}">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Lebensmittel</label>
+                    <input type="text" class="form-control" id="food-search"
+                           placeholder="Suchen..." autocomplete="off">
+                    <input type="hidden" name="food_id" id="food-id" required>
+                    <div id="food-results" class="list-group position-absolute shadow" style="z-index:99; display:none;"></div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Mahlzeit</label>
+                    <select name="meal_type" class="form-select">
+                        {% for key, label in meal_types %}
+                        <option value="{{ key }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Menge (g)</label>
+                    <input type="number" name="amount_g" class="form-control" value="100" min="1" step="1">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-plus-lg"></i> Hinzufügen
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Meals -->
+{% for mt_key, mt_label in meal_types %}
+{% if mt_key in meals %}
+<div class="card mb-3">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-clock me-1"></i>{{ mt_label }}</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Lebensmittel</th>
+                    <th class="text-end">Menge</th>
+                    <th class="text-end">Kalorien</th>
+                    <th class="text-end">Eiweiß</th>
+                    <th class="text-end">Fett</th>
+                    <th class="text-end">KH</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in meals[mt_key] %}
+                {% set f = entry.amount_g / 100 %}
+                <tr>
+                    <td>{{ entry.food.name }}{% if entry.food.brand %} <small class="text-muted">({{ entry.food.brand }})</small>{% endif %}</td>
+                    <td class="text-end">{{ entry.amount_g | round(0) | int }} g</td>
+                    <td class="text-end">{{ (entry.food.calories * f) | round(0) | int }} kcal</td>
+                    <td class="text-end">{{ (entry.food.protein * f) | round(1) }} g</td>
+                    <td class="text-end">{{ (entry.food.fat * f) | round(1) }} g</td>
+                    <td class="text-end">{{ (entry.food.carbs * f) | round(1) }} g</td>
+                    <td class="text-end">
+                        <form action="{{ url_for('diary_delete', entry_id=entry.id) }}" method="post"
+                              onsubmit="return confirm('Eintrag löschen?')">
+                            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
+{% if not meals %}
+<div class="text-center text-muted py-5">
+    <i class="bi bi-journal-x" style="font-size:3rem;"></i>
+    <p class="mt-2">Noch keine Einträge für diesen Tag.</p>
+</div>
+{% endif %}
+
+<!-- Burned Calories -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-fire me-2"></i>Verbrannte Kalorien</h5>
+    </div>
+    <div class="card-body">
+        <form action="{{ url_for('burn_save') }}" method="post">
+            <input type="hidden" name="date" value="{{ day.isoformat() }}">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-6">
+                    <label class="form-label">Kalorien verbrannt (kcal)</label>
+                    <input type="number" name="calories_burned" class="form-control"
+                           step="1" min="0"
+                           value="{{ calories_burned | int if calories_burned is not none else '' }}"
+                           placeholder="Standard: Sollwert ({{ summary[0].target | int }} kcal)">
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-outline-success w-100">
+                        <i class="bi bi-check-lg me-1"></i>Speichern
+                    </button>
+                </div>
+                <div class="col-md-3 text-muted small align-self-center">
+                    {% if calories_burned is not none %}
+                    Bilanz: <strong class="{% if summary[0].current - calories_burned > 0 %}text-danger{% else %}text-success{% endif %}">
+                        {{ (summary[0].current - calories_burned) | round(0) | int }} kcal
+                    </strong>
+                    {% else %}
+                    Kein Wert eingetragen (Default: 0 Defizit)
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Nutrient Chart -->
+<div class="card mb-4">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Nährwert-Analyse</h5>
+            <div class="d-flex gap-2 flex-wrap">
+                <select id="nutrient-select" class="form-select form-select-sm" style="width:auto;">
+                    {% for s in summary %}
+                    <option value="{{ s.key }}">{{ s.label }} ({{ s.unit }})</option>
+                    {% endfor %}
+                </select>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-success active" data-period="7">7 Tage</button>
+                    <button type="button" class="btn btn-outline-success" data-period="30">30 Tage</button>
+                    <button type="button" class="btn btn-outline-success" data-period="365">1 Jahr</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <canvas id="nutrientChart" height="100"></canvas>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+    var ctx = document.getElementById('nutrientChart').getContext('2d');
+    var chart = null;
+    var currentPeriod = '7';
+    var currentNutrient = 'calories';
+
+    var nutrientLabels = {
+        calories: 'Kalorien', fat: 'Fett', saturated_fat: 'Ges. Fettsäuren',
+        carbs: 'Kohlenhydrate', sugar: 'Zucker', protein: 'Eiweiß',
+        fiber: 'Ballaststoffe', salt: 'Salz'
+    };
+
+    function loadChart() {
+        fetch('/api/chart/nutrient?period=' + currentPeriod + '&nutrient=' + currentNutrient)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (chart) chart.destroy();
+
+                var isCalories = data.nutrient === 'calories';
+                var label = nutrientLabels[data.nutrient] || data.nutrient;
+                var unit = data.unit;
+                var smallPoints = currentPeriod === '365' ? 0 : 3;
+
+                var targetLine = data.labels.map(function() { return data.target; });
+
+                var datasets = [
+                    {
+                        label: 'Aufnahme (' + unit + ')',
+                        data: data.intakes,
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: smallPoints,
+                    },
+                    {
+                        label: 'Ziel (' + data.target + ' ' + unit + ')',
+                        data: targetLine,
+                        borderColor: 'rgba(40, 167, 69, 0.7)',
+                        borderWidth: 2,
+                        borderDash: [6, 3],
+                        fill: false,
+                        pointRadius: 0,
+                        pointHitRadius: 0,
+                    },
+                    {
+                        label: 'Bilanz (' + unit + ')',
+                        data: data.diffs,
+                        borderColor: 'rgba(255, 159, 64, 1)',
+                        backgroundColor: 'rgba(255, 159, 64, 0.1)',
+                        fill: false,
+                        tension: 0.3,
+                        borderDash: [4, 4],
+                        pointRadius: smallPoints,
+                    }
+                ];
+
+                if (isCalories) {
+                    datasets.push({
+                        label: 'Kumuliert (' + unit + ')',
+                        data: data.cumulative,
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        fill: false,
+                        tension: 0.3,
+                        borderDash: [8, 4],
+                        pointRadius: smallPoints,
+                    });
+                }
+
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: { labels: data.labels, datasets: datasets },
+                    options: {
+                        responsive: true,
+                        interaction: { intersect: false, mode: 'index' },
+                        plugins: { legend: { position: 'top' } },
+                        scales: {
+                            y: {
+                                title: { display: true, text: unit },
+                                grid: { color: function(c) {
+                                    return c.tick.value === 0 ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.05)';
+                                }}
+                            },
+                            x: {
+                                ticks: { maxTicksLimit: currentPeriod === '365' ? 12 : undefined }
+                            }
+                        }
+                    }
+                });
+            });
+    }
+
+    loadChart();
+
+    document.querySelectorAll('[data-period]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('[data-period]').forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            currentPeriod = btn.getAttribute('data-period');
+            loadChart();
+        });
+    });
+
+    document.getElementById('nutrient-select').addEventListener('change', function() {
+        currentNutrient = this.value;
+        loadChart();
+    });
+})();
+</script>
+{% endblock %}

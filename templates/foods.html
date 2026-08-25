@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0"><i class="bi bi-database me-2"></i>Lebensmittel-Datenbank</h4>
+    <a href="{{ url_for('food_add') }}" class="btn btn-success">
+        <i class="bi bi-plus-lg me-1"></i>Neues Lebensmittel
+    </a>
+</div>
+
+<form class="mb-4" action="{{ url_for('food_list') }}" method="get">
+    <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" class="form-control" placeholder="Lebensmittel suchen..."
+               value="{{ q }}">
+        <button class="btn btn-outline-secondary" type="submit">Suchen</button>
+        {% if q %}
+        <a href="{{ url_for('food_list') }}" class="btn btn-outline-danger">
+            <i class="bi bi-x-lg"></i>
+        </a>
+        {% endif %}
+    </div>
+</form>
+
+{% if foods %}
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>Name</th>
+                <th>Marke</th>
+                <th class="text-end">kcal</th>
+                <th class="text-end">Fett</th>
+                <th class="text-end">KH</th>
+                <th class="text-end">Eiweiß</th>
+                <th class="text-center">Aktionen</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for food in foods %}
+            <tr>
+                <td class="fw-semibold">{{ food.name }}</td>
+                <td class="text-muted">{{ food.brand or '–' }}</td>
+                <td class="text-end">{{ food.calories | round(0) | int }}</td>
+                <td class="text-end">{{ food.fat | round(1) }} g</td>
+                <td class="text-end">{{ food.carbs | round(1) }} g</td>
+                <td class="text-end">{{ food.protein | round(1) }} g</td>
+                <td class="text-center">
+                    <a href="{{ url_for('food_edit', food_id=food.id) }}" class="btn btn-sm btn-outline-primary me-1">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <form action="{{ url_for('food_delete', food_id=food.id) }}" method="post"
+                          class="d-inline" onsubmit="return confirm('Wirklich löschen?')">
+                        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<p class="text-muted">{{ foods | length }} Lebensmittel{% if q %} gefunden{% endif %}</p>
+{% else %}
+<div class="text-center text-muted py-5">
+    <i class="bi bi-inbox" style="font-size:3rem;"></i>
+    <p class="mt-2">
+        {% if q %}Keine Ergebnisse für "{{ q }}".{% else %}Noch keine Lebensmittel angelegt.{% endif %}
+    </p>
+</div>
+{% endif %}
+{% endblock %}

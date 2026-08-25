@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.db
+.idea/
+uploads/
+venv/
+.env
+generate_icons.py

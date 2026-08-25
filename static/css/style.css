@@ -1,0 +1,44 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    border-radius: 0.75rem;
+}
+
+.card-header {
+    border-radius: 0.75rem 0.75rem 0 0 !important;
+}
+
+.progress {
+    border-radius: 1rem;
+    background-color: #e9ecef;
+}
+
+.navbar-brand {
+    font-size: 1.3rem;
+}
+
+.table th {
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6c757d;
+}
+
+#food-results {
+    max-height: 250px;
+    overflow-y: auto;
+    width: calc(100% - 24px);
+}
+
+#food-results .list-group-item {
+    cursor: pointer;
+}
+
+#food-results .list-group-item:hover {
+    background-color: #e8f5e9;
+}
