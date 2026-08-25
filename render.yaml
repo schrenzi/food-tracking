@@ -6,10 +6,8 @@ databases:
 services:
   - type: web
     name: food-tracker
-    runtime: python
+    runtime: docker
     plan: free
-    buildCommand: apt-get update && apt-get install -y tesseract-ocr tesseract-ocr-deu && pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -17,5 +15,3 @@ services:
           property: connectionString
       - key: SECRET_KEY
         generateValue: true
-      - key: PYTHON_VERSION
-        value: "3.12"
