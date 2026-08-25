@@ -105,10 +105,10 @@
                 <tr>
                     <th>Lebensmittel</th>
                     <th class="text-end">Menge</th>
-                    <th class="text-end">Kalorien</th>
-                    <th class="text-end">Eiweiß</th>
-                    <th class="text-end">Fett</th>
-                    <th class="text-end">KH</th>
+                    <th class="text-end">kcal</th>
+                    <th class="text-end d-none d-md-table-cell">Eiweiß</th>
+                    <th class="text-end d-none d-md-table-cell">Fett</th>
+                    <th class="text-end d-none d-md-table-cell">KH</th>
                     <th></th>
                 </tr>
             </thead>
@@ -117,11 +117,11 @@
                 {% set f = entry.amount_g / 100 %}
                 <tr>
                     <td>{{ entry.food.name }}{% if entry.food.brand %} <small class="text-muted">({{ entry.food.brand }})</small>{% endif %}</td>
-                    <td class="text-end">{{ entry.amount_g | round(0) | int }} g</td>
-                    <td class="text-end">{{ (entry.food.calories * f) | round(0) | int }} kcal</td>
-                    <td class="text-end">{{ (entry.food.protein * f) | round(1) }} g</td>
-                    <td class="text-end">{{ (entry.food.fat * f) | round(1) }} g</td>
-                    <td class="text-end">{{ (entry.food.carbs * f) | round(1) }} g</td>
+                    <td class="text-end text-nowrap">{{ entry.amount_g | round(0) | int }} g</td>
+                    <td class="text-end text-nowrap">{{ (entry.food.calories * f) | round(0) | int }}</td>
+                    <td class="text-end d-none d-md-table-cell">{{ (entry.food.protein * f) | round(1) }} g</td>
+                    <td class="text-end d-none d-md-table-cell">{{ (entry.food.fat * f) | round(1) }} g</td>
+                    <td class="text-end d-none d-md-table-cell">{{ (entry.food.carbs * f) | round(1) }} g</td>
                     <td class="text-end">
                         <form action="{{ url_for('diary_delete', entry_id=entry.id) }}" method="post"
                               onsubmit="return confirm('Eintrag löschen?')">
@@ -199,7 +199,9 @@
         </div>
     </div>
     <div class="card-body">
-        <canvas id="nutrientChart" height="100"></canvas>
+        <div style="position:relative; min-height:280px;">
+            <canvas id="nutrientChart"></canvas>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -277,22 +279,33 @@
                     });
                 }
 
+                var isMobile = window.innerWidth < 768;
                 chart = new Chart(ctx, {
                     type: 'line',
                     data: { labels: data.labels, datasets: datasets },
                     options: {
                         responsive: true,
+                        maintainAspectRatio: false,
                         interaction: { intersect: false, mode: 'index' },
-                        plugins: { legend: { position: 'top' } },
+                        plugins: {
+                            legend: {
+                                position: isMobile ? 'bottom' : 'top',
+                                labels: { boxWidth: isMobile ? 10 : 40, font: { size: isMobile ? 10 : 12 } }
+                            }
+                        },
                         scales: {
                             y: {
-                                title: { display: true, text: unit },
+                                title: { display: !isMobile, text: unit },
+                                ticks: { font: { size: isMobile ? 10 : 12 } },
                                 grid: { color: function(c) {
                                     return c.tick.value === 0 ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.05)';
                                 }}
                             },
                             x: {
-                                ticks: { maxTicksLimit: currentPeriod === '365' ? 12 : undefined }
+                                ticks: {
+                                    maxTicksLimit: isMobile ? 5 : (currentPeriod === '365' ? 12 : undefined),
+                                    font: { size: isMobile ? 10 : 12 }
+                                }
                             }
                         }
                     }
